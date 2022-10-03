@@ -1,0 +1,58 @@
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <title>Google Photos Metadata Extractor</title>
+</head>
+<body>
+    <h3> Google Photos Metadata Extractor </h3>
+    <div>
+        <form action="#">
+          <label for="albums0">Albums</label>
+          <select name="albums" id="albums0">
+          </select>
+          <input type="submit" value="Fetch Media Metadata" onclick="fetchAlbumMetadata(this)"/>
+        </form>
+    </div>
+</body>
+<script>
+    function metadataJson2Csv(data) {
+        const fields = ["filename"];
+        let outStr = "INDEX,FILENAME,CREATION_TIMESTAMP,URL\n";
+        data.forEach((m, index) => {
+            outStr += `${index},${m["filename"]},${m["mediaMetadata"]["creationTime"]},${m["productUrl"]}\n`;
+        });
+        return outStr;
+    }
+
+    function fetchAlbumMetadata(button) {
+        button.value = "Fetching...";
+        button.disabled = true;
+
+        let albumSelection = document.getElementById('albums0');
+        let albumName = albumSelection.options[albumSelection.selectedIndex].text;
+        let albumId = albumSelection.options[albumSelection.selectedIndex].value;
+
+        fetch(`album/${albumId}`)
+        .then(function(data) {
+            return data.json();
+        })
+        .then(function(data) {
+            let csv = metadataJson2Csv(data == null ? {} : data.mediaItems);
+            let downloadLink = document.createElement("a");
+            let blob = new Blob(["\ufeff", csv]);
+            let url = URL.createObjectURL(blob);
+            downloadLink.href = url;
+            downloadLink.download = `album_${albumName}_media_metadata.csv`;
+            downloadLink.click();
+        })
+        .finally(function() {
+            button.value = "Fetch Media Metadata";
+            button.disabled = false;
+        })
+    }
+    
+    for (const album of {{ .Albums }}) {
+        $("#albums0").append(`<option value=${album.id}>${album.title}</option>`);
+    }
+</script>
+</html>
